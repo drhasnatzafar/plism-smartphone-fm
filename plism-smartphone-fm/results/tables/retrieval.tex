@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lrrrr}
+\toprule
+model & phone$\to$scanner cross\_stain top1 & phone$\to$scanner same\_stain top1 & scanner$\to$scanner cross\_stain top1 & scanner$\to$scanner same\_stain top1 \\
+\midrule
+conch & 0.529 & 0.758 & 0.892 & 0.947 \\
+dinov2\_l & 0.625 & 0.784 & 0.886 & 0.942 \\
+gigapath & 0.716 & 0.925 & 0.958 & 0.987 \\
+hoptimus0 & 0.776 & 0.933 & 0.974 & 0.991 \\
+phikon2 & 0.320 & 0.686 & 0.582 & 0.751 \\
+uni & 0.847 & 0.967 & 0.986 & 0.996 \\
+uni2h & 0.754 & 0.921 & 0.921 & 0.974 \\
+virchow2 & 0.601 & 0.771 & 0.890 & 0.939 \\
+vitb16\_in & 0.570 & 0.765 & 0.855 & 0.935 \\
+\bottomrule
+\end{tabular}
+\caption{Top-1 retrieval of the same group (mean over device pairs).}
+\label{tab:retrieval}
+\end{table}
