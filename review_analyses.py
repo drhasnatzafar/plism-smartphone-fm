@@ -19,7 +19,18 @@ import numpy as np, pandas as pd
 _here = Path(__file__).resolve().parent
 _cands = [_here] + [Path(p).parent for p in glob.glob("/kaggle/input/**/analysis.py", recursive=True) + glob.glob("/kaggle/working/**/analysis.py", recursive=True)]
 sys.path.insert(0, str(next((c for c in _cands if (c / "analysis.py").exists()), _here)))
-from analysis import run_probe_protocol, lr_predict  # noqa: E402
+from analysis import run_probe_protocol  # noqa: E402
+import warnings
+from sklearn.linear_model import LogisticRegression
+
+
+def lr_predict(Xtr, ytr, Xtes, C=1.0, max_iter=200, seed=0):
+    """Same probe as analysis.lr_predict, but returns labels directly (safe when a class is absent from training)."""
+    mu, sd = Xtr.mean(0), Xtr.std(0) + 1e-8
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        clf = LogisticRegression(C=C, max_iter=max_iter, tol=1e-3, random_state=seed).fit((Xtr - mu) / sd, ytr)
+    return [clf.predict((X - mu) / sd) for X in Xtes]
 
 MODELS = ["uni2h", "gigapath", "hoptimus0", "uni", "virchow2", "phikon2", "dinov2_l", "conch", "vitb16_in"]
 
