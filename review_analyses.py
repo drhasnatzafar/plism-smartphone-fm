@@ -19,7 +19,7 @@ import numpy as np, pandas as pd
 _here = Path(__file__).resolve().parent
 _cands = [_here] + [Path(p).parent for p in glob.glob("/kaggle/input/**/analysis.py", recursive=True) + glob.glob("/kaggle/working/**/analysis.py", recursive=True)]
 sys.path.insert(0, str(next((c for c in _cands if (c / "analysis.py").exists()), _here)))
-from analysis import run_probe_protocol  # noqa: E402
+from analysis import run_probe_protocol, l2norm  # noqa: E402
 import warnings
 from sklearn.linear_model import LogisticRegression
 
@@ -49,6 +49,13 @@ def find_inputs(emb_dirs):
         ix = pd.read_csv(f.parent / "index.csv")
         assert len(ix) == len(ref) and (ix.path.values == ref.path.values).all(), f"index order differs for {m}"
     return ref, files
+
+
+def load_emb(path):
+    """Same preprocessing as analysis.load_embeddings: float32, non-finite rows -> 0, L2-normalised."""
+    E = np.load(path).astype(np.float32)
+    E[~np.isfinite(E).all(1)] = 0.0
+    return l2norm(E)
 
 
 def labelled(index):
@@ -111,26 +118,38 @@ def spatial_components(ix):
     return ix.group_id.map(comp).values
 
 
-def within_stain(ix, E, comp, seed=0, n_splits=5):
+def within_stain(ix, E, groups, seed=0, n_splits=5):
+    """Train on scanner tiles and test on all tiles within each stain, folds grouped by ``groups``.
+    Returns labels, predictions, phone mask and ``supported`` (test tile's class present in its training fold)."""
     from sklearn.model_selection import GroupKFold
     y = pd.factorize(ix.tissue)[0]
     is_ph = (ix.device_type == "phone").values
     pred = np.full(len(ix), -1)
+    sup = np.zeros(len(ix), bool)
     for st in ix.stain.unique():
         rows = np.where(ix.stain.values == st)[0]
-        k = min(n_splits, len(np.unique(comp[rows])))
+        k = min(n_splits, len(np.unique(groups[rows])))
         if k < 2:
-            print(f"  [skip] stain {st}: <2 spatial components", flush=True)
             continue
         try:
             gkf = GroupKFold(n_splits=k, shuffle=True, random_state=seed)
         except TypeError:
             gkf = GroupKFold(n_splits=k)
-        for tr_g, te_g in gkf.split(rows, groups=comp[rows]):
-            tr = rows[tr_g][~is_ph[rows[tr_g]]]  # train on scanner tiles only
+        for tr_g, te_g in gkf.split(rows, groups=groups[rows]):
+            tr = rows[tr_g][~is_ph[rows[tr_g]]]
             te = rows[te_g]
             pred[te] = lr_predict(E[ix.row.values[tr]], y[tr], [E[ix.row.values[te]]], seed=seed)[0]
-    return y, pred, is_ph
+            sup[te] = np.isin(y[te], np.unique(y[tr]))
+    return y, pred, is_ph, sup
+
+
+def drop_ci(y, p, is_ph, grp, B, rng):
+    g, gi = np.unique(grp, return_inverse=True)
+    d = []
+    for _ in range(B):
+        w = np.bincount(rng.integers(0, len(g), len(g)), minlength=len(g))[gi].astype(float)
+        d.append(bal_acc(y[~is_ph], p[~is_ph], w[~is_ph]) - bal_acc(y[is_ph], p[is_ph], w[is_ph]))
+    return np.percentile(d, [2.5, 97.5])
 
 
 # ---------------------------------------------------------------- main
@@ -158,34 +177,31 @@ def main():
     print(f"== 2. within-stain: {len(sz)} spatial components from {ix.group_id.nunique()} groups; "
           f"groups per component: median {sz.median():.0f}, max {sz.max():.0f}", flush=True)
     pd.DataFrame({"component": sz.index, "groups": sz.values}).to_csv(out / "spatial_components.csv", index=False)
+    gid = ix.group_id.values
     rows = []
     for m in models:
         t0 = time.time()
-        E = np.load(files[m]).astype(np.float32)
-        y, p, is_ph = within_stain(ix, E, comp)
-        ok = p >= 0
-        s, ph = ok & ~is_ph, ok & is_ph
-        ba_s, ba_p = bal_acc(y[s], p[s]), bal_acc(y[ph], p[ph])
-        ci = boot_ci(y[s], p[s], comp[s], a.boot, rng)  # scanner BA CI
-        # drop CI: resample components, recompute both BAs
-        g, gi = np.unique(comp[ok], return_inverse=True)
-        ys, ps, phm = y[ok], p[ok], is_ph[ok]
-        drops = []
-        for _ in range(a.boot):
-            w = np.bincount(rng.integers(0, len(g), len(g)), minlength=len(g))[gi].astype(float)
-            drops.append(bal_acc(ys[~phm], ps[~phm], w[~phm]) - bal_acc(ys[phm], ps[phm], w[phm]))
-        lo, hi = np.percentile(drops, [2.5, 97.5])
-        rows.append({"model": m, "scanner_BA": ba_s, "phone_BA": ba_p, "drop": ba_s - ba_p, "drop_lo": lo, "drop_hi": hi,
-                     "scanner_BA_lo": ci[0], "scanner_BA_hi": ci[1]})
-        print(f"  {m}: scanner {ba_s:.3f}  phone {ba_p:.3f}  drop {ba_s-ba_p:.3f} [{lo:.3f}, {hi:.3f}]  ({time.time()-t0:.0f}s)",
-              flush=True)
+        E = load_emb(files[m])
+        for split_name, grp in (("ordinary_groups", gid), ("spatial_clusters", comp)):
+            y, p, is_ph, sup = within_stain(ix, E, grp)
+            for subset, keep in (("all", p >= 0), ("supported_classes", (p >= 0) & sup)):
+                yy, pp, ph, gg = y[keep], p[keep], is_ph[keep], grp[keep]
+                ba_s, ba_p = bal_acc(yy[~ph], pp[~ph]), bal_acc(yy[ph], pp[ph])
+                lo, hi = drop_ci(yy, pp, ph, gg, a.boot, rng)
+                rows.append({"model": m, "split": split_name, "subset": subset, "scanner_BA": ba_s, "phone_BA": ba_p,
+                             "drop": ba_s - ba_p, "drop_lo": lo, "drop_hi": hi,
+                             "test_tiles": int(keep.sum()), "supported_frac_tiles": float(sup[p >= 0].mean()),
+                             "test_classes": int(len(np.unique(y[p >= 0]))), "supported_classes": int(len(np.unique(y[(p >= 0) & sup])))})
+                print(f"  {m:10s} {split_name:16s} {subset:17s} scanner {ba_s:.3f} phone {ba_p:.3f} "
+                      f"drop {ba_s-ba_p:.3f} [{lo:.3f}, {hi:.3f}]  supported tiles {sup[p>=0].mean():.2f}", flush=True)
+        print(f"  ({time.time()-t0:.0f}s)", flush=True)
         del E
     ws = pd.DataFrame(rows); ws.to_csv(out / "within_stain.csv", index=False)
     print(ws.round(3).to_string(index=False), flush=True)
 
-    print("== 3. paired adaptation comparison: UNI2-h (none) vs H-optimus-0 (10-shot)", flush=True)
+    print("== 3. paired adaptation comparison: UNI2-h (none) vs H-optimus-0 (10-shot); seed 0 = main-analysis folds and support draw (paper: 0.969 vs 0.959)", flush=True)
     if "uni2h" in files and "hoptimus0" in files:
-        Eu, Eh = np.load(files["uni2h"]).astype(np.float32), np.load(files["hoptimus0"]).astype(np.float32)
+        Eu, Eh = load_emb(files["uni2h"]), load_emb(files["hoptimus0"])
         prow = []
         for sd in range(a.seeds):
             t0 = time.time()

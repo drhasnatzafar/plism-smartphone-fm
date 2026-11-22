@@ -238,7 +238,7 @@ def lr_predict(Xtr, ytr, Xtes, C=1.0, max_iter=200, seed=0):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")  # convergence warnings: fixed iteration budget by design
         clf = LogisticRegression(C=C, max_iter=max_iter, tol=1e-3, random_state=seed).fit((Xtr - mu) / sd, ytr)
-    return [clf.classes_[clf.predict((X - mu) / sd)] for X in Xtes]
+    return [clf.predict((X - mu) / sd) for X in Xtes]  # predict() already returns class labels
 
 
 def class_counts(y, p, loc, n_loc, C):
