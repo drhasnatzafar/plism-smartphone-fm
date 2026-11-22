@@ -1,11 +1,11 @@
-"""Supplementary figures with readable labels (run from plism-paper/)."""
+"""Supplementary figures of the paper, with readable labels. Run from the repository root:  python make_supp_figs.py"""
 import pandas as pd, numpy as np, matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.stats import spearmanr
 
-R = "/home/claude/plism-results/results/"
-OUT = "figures/"
+R = "results/"
+OUT = "results/figures/"
 NAME = {"uni2h": "UNI2-h", "gigapath": "Prov-GigaPath", "hoptimus0": "H-optimus-0", "uni": "UNI",
         "virchow2": "Virchow2", "phikon2": "Phikon-v2", "dinov2_l": "DINOv2-L", "conch": "CONCH",
         "vitb16_in": "ViT-B/16 (ImageNet)"}
