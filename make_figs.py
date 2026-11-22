@@ -2,7 +2,7 @@ import pandas as pd, matplotlib.pyplot as plt, numpy as np, sys
 R = sys.argv[1]
 N = {'uni2h':'UNI2-h','gigapath':'Prov-GigaPath','hoptimus0':'H-optimus-0','uni':'UNI','virchow2':'Virchow2',
      'phikon2':'Phikon-v2','dinov2_l':'DINOv2-L','conch':'CONCH','vitb16_in':'ViT-B/16 (ImageNet)'}
-P = {'iphone13':'iPhone 13','redmi':'Redmi','moto':'Moto','iphone6':'iPhone 6','galaxy':'Galaxy','itel':'itel'}
+P = {'iphone13':'iPhone 13 mini','redmi':'Redmi','moto':'Moto','iphone6':'iPhone 6','galaxy':'Galaxy','itel':'itel'}
 m = pd.read_csv(f'{R}/classification_main.csv')
 m['lo'] = m['drop [95% CI]'].str.extract(r'\[([\d.]+),').astype(float); m['hi'] = m['drop [95% CI]'].str.extract(r', ([\d.]+)\]').astype(float)
 m['d'] = m['drop [95% CI]'].str.split(' ').str[0].astype(float)
