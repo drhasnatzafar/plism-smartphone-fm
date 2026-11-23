@@ -1,4 +1,5 @@
 """Metrics sanity, leakage-free splits and probe protocol on synthetic embeddings."""
+import json
 import numpy as np
 import pandas as pd
 import pytest
@@ -163,3 +164,24 @@ def test_end_to_end_outputs(small, tmp_path):
     for f in ["fig_paired", "fig_retrieval", "fig_drop", "fig_fixes", "fig_per_phone", "fig_quality"]:
         assert (res / "figures" / f"{f}.png").exists() and (res / "figures" / f"{f}.pdf").exists()
     A.main(["--emb", str(emb), "--results", str(res), "--boot", "30"])  # second run: everything cached
+
+
+def test_classification_cache_respects_settings(small, tmp_path):
+    """Changing the seed with the same results directory must recompute, not reuse, the classification cache."""
+    df, E = small
+    emb = tmp_path / "emb"
+    emb.mkdir()
+    df.to_csv(emb / "index.csv", index=False)
+    np.save(emb / "toyA.npy", E.astype(np.float16))
+    res = tmp_path / "res"
+    args = ["--emb", str(emb), "--results", str(res), "--boot", "30", "--lr-iter", "50", "--analyses", "c"]
+    A.main(args + ["--seed", "0"])
+    sp = res / "cache" / "classification__toyA.settings.json"
+    assert json.loads(sp.read_text())["seed"] == 0
+    A.main(args + ["--seed", "1"])
+    assert json.loads(sp.read_text())["seed"] == 1
+    fresh = tmp_path / "fresh"
+    A.main(["--emb", str(emb), "--results", str(fresh), "--boot", "30", "--lr-iter", "50", "--analyses", "c", "--seed", "1"])
+    a = pd.read_csv(res / "cache" / "classification__toyA.csv")
+    b = pd.read_csv(fresh / "cache" / "classification__toyA.csv")
+    pd.testing.assert_frame_equal(a, b)
