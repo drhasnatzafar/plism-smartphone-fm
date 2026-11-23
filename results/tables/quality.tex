@@ -1,32 +1,30 @@
 \begin{table}[t]
 \centering
 \small
-\begin{tabular}{lrrrrr}
+\begin{tabular}{lrrrrrr}
 \toprule
-model & proxy & spearman\_rho & p\_value & n\_phones & n \\
+model & proxy & spearman\_rho & p\_exact & p\_asymptotic & n\_phones & n \\
 \midrule
-conch & sharpness\_rel & -0.943 & 0.005 & 6 & 6 \\
-dinov2\_l & sharpness\_rel & -0.771 & 0.072 & 6 & 6 \\
-gigapath & sharpness\_rel & -0.829 & 0.042 & 6 & 6 \\
-hoptimus0 & sharpness\_rel & -0.829 & 0.042 & 6 & 6 \\
-phikon2 & sharpness\_rel & -0.714 & 0.111 & 6 & 6 \\
-uni & sharpness\_rel & -0.771 & 0.072 & 6 & 6 \\
-uni2h & sharpness\_rel & -0.657 & 0.156 & 6 & 6 \\
-virchow2 & sharpness\_rel & -0.657 & 0.156 & 6 & 6 \\
-vitb16\_in & sharpness\_rel & -0.771 & 0.072 & 6 & 6 \\
-MEAN OVER MODELS (per phone) & sharpness\_rel & -0.829 & 0.042 & 6 & 6 \\
-conch & saturation & 0.314 & 0.544 & 6 & 6 \\
-dinov2\_l & saturation & 0.657 & 0.156 & 6 & 6 \\
-gigapath & saturation & 0.600 & 0.208 & 6 & 6 \\
-hoptimus0 & saturation & 0.600 & 0.208 & 6 & 6 \\
-phikon2 & saturation & 0.657 & 0.156 & 6 & 6 \\
-uni & saturation & 0.657 & 0.156 & 6 & 6 \\
-uni2h & saturation & 0.543 & 0.266 & 6 & 6 \\
-virchow2 & saturation & 0.714 & 0.111 & 6 & 6 \\
-vitb16\_in & saturation & 0.200 & 0.704 & 6 & 6 \\
-MEAN OVER MODELS (per phone) & saturation & 0.600 & 0.208 & 6 & 6 \\
+conch & sharpness\_rel & -0.943 & 0.017 & 0.005 & 6 & 6 \\
+dinov2_l & sharpness\_rel & -0.771 & 0.103 & 0.072 & 6 & 6 \\
+gigapath & sharpness\_rel & -0.829 & 0.058 & 0.042 & 6 & 6 \\
+hoptimus0 & sharpness\_rel & -0.829 & 0.058 & 0.042 & 6 & 6 \\
+phikon2 & sharpness\_rel & -0.714 & 0.136 & 0.111 & 6 & 6 \\
+uni & sharpness\_rel & -0.771 & 0.103 & 0.072 & 6 & 6 \\
+uni2h & sharpness\_rel & -0.657 & 0.175 & 0.156 & 6 & 6 \\
+virchow2 & sharpness\_rel & -0.657 & 0.175 & 0.156 & 6 & 6 \\
+vitb16_in & sharpness\_rel & -0.771 & 0.103 & 0.072 & 6 & 6 \\
+MEAN OVER MODELS (per phone) & sharpness\_rel & -0.829 & 0.058 & 0.042 & 6 & 6 \\
+conch & saturation & 0.314 & 0.564 & 0.544 & 6 & 6 \\
+dinov2_l & saturation & 0.657 & 0.175 & 0.156 & 6 & 6 \\
+gigapath & saturation & 0.600 & 0.242 & 0.208 & 6 & 6 \\
+hoptimus0 & saturation & 0.600 & 0.242 & 0.208 & 6 & 6 \\
+phikon2 & saturation & 0.657 & 0.175 & 0.156 & 6 & 6 \\
+uni & saturation & 0.657 & 0.175 & 0.156 & 6 & 6 \\
+uni2h & saturation & 0.543 & 0.297 & 0.266 & 6 & 6 \\
+virchow2 & saturation & 0.714 & 0.136 & 0.111 & 6 & 6 \\
+vitb16_in & saturation & 0.200 & 0.714 & 0.704 & 6 & 6 \\
+MEAN OVER MODELS (per phone) & saturation & 0.600 & 0.242 & 0.208 & 6 & 6 \\
 \bottomrule
 \end{tabular}
-\caption{Spearman correlation between per-phone drop and image-quality proxies.}
-\label{tab:quality}
 \end{table}
