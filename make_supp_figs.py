@@ -2,6 +2,7 @@
 import pandas as pd, numpy as np, matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import itertools
 from scipy.stats import spearmanr
 
 R = "results/"
@@ -39,8 +40,10 @@ for p in d.columns:
     dx, dy, ha = off[p]
     ax.annotate(PHONE[p], (SHARP[p], mean[p]), xytext=(dx, dy), textcoords="offset points", ha=ha,
                 fontsize=6.5, color=INK)
-rho, pv = spearmanr(xs, mean.values)
-ax.set_title(f"mean over encoders: Spearman $\\rho$ = {rho:.2f}, p = {pv:.2f}", fontsize=7, color=INK)
+rho, _ = spearmanr(xs, mean.values)
+# exact two-sided permutation p over all 6! orderings of the six phones
+pv = np.mean([abs(spearmanr(xs, np.array(q))[0]) >= abs(rho) - 1e-9 for q in itertools.permutations(mean.values)])
+ax.set_title(f"mean over encoders: Spearman $\\rho$ = {rho:.2f}, exact p = {pv:.3f}", fontsize=7, color=INK)
 ax.set_xscale("log"); ax.set_xticks([0.6, 1, 2, 3]); ax.set_xticklabels(["0.6", "1", "2", "3"])
 ax.set_xlabel("relative sharpness (phone / scanner median)"); ax.set_ylabel("linear-probe BA drop")
 ax.grid(axis="y", color=GRID, lw=0.6); ax.set_axisbelow(True)
@@ -69,7 +72,7 @@ save(fig, "fig_paired")
 r = pd.read_csv(R + "retrieval_summary.csv"); r = r[r.kind == "phone->scanner"]
 SEQ = ["#86b6ef", "#3987e5", "#1c5cab"]
 fig, axes = plt.subplots(1, 2, figsize=(3.4, 3.0), sharey=True)
-for ax, prot, title in zip(axes, ["same_stain", "cross_stain"], ["same stain", "cross-stain"]):
+for ax, prot, title in zip(axes, ["same_stain", "cross_stain"], ["same-stain gallery", "all-stains gallery"]):
     s = r[r.protocol == prot].set_index("model").reindex(ORDER)
     for col, k, c in zip(["top10", "top5", "top1"], [10, 5, 1], SEQ[::-1]):
         ax.scatter(s[col], y, s=14, color=c, label=f"top-{k}", zorder=3)

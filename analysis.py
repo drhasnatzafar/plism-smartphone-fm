@@ -396,6 +396,14 @@ def device_quality(index: pd.DataFrame) -> pd.DataFrame:
     return q
 
 
+def exact_spearman_p(x: np.ndarray, y: np.ndarray) -> float:
+    """Exact two-sided permutation p-value of Spearman's rho (all n! orderings; use for small n, e.g. six phones)."""
+    import itertools
+    r0 = abs(sps.spearmanr(x, y)[0])
+    rs = [abs(sps.spearmanr(x, np.asarray(q))[0]) for q in itertools.permutations(y)]
+    return float(np.mean(np.asarray(rs) >= r0 - 1e-9))
+
+
 def quality_correlation(cls: pd.DataFrame, index: pd.DataFrame) -> pd.DataFrame:
     """Spearman correlation across phones between the scanner->phone drop (LR, baseline, balanced accuracy)
     and quality proxies; per model (n = #phones, descriptive) and pooled after removing each model's mean."""
@@ -417,7 +425,9 @@ def quality_correlation(cls: pd.DataFrame, index: pd.DataFrame) -> pd.DataFrame:
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")  # constant input -> nan
                     r, p = sps.spearmanr(g[col], g[proxy])
-                rows.append({"model": name, "proxy": proxy, "spearman_rho": float(r), "p_value": float(p), "n_phones": int(g.device.nunique()), "n": len(g)})
+                    p_exact = exact_spearman_p(g[col].to_numpy(), g[proxy].to_numpy()) if len(g) <= 8 else float("nan")
+                rows.append({"model": name, "proxy": proxy, "spearman_rho": float(r), "p_exact": p_exact,
+                             "p_asymptotic": float(p), "n_phones": int(g.device.nunique()), "n": len(g)})
     return pd.DataFrame(rows)
 
 
