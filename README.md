@@ -12,7 +12,7 @@ PLISM-sm (Ochi et al., *Scientific Data* 11:330, 2024; CC BY 4.0), available on 
 UNI, UNI2-h, Prov-GigaPath, H-optimus-0, Virchow2, Phikon-v2, CONCH, DINOv2-L and an ImageNet ViT-B/16, all frozen. Gated models require accepting their licences on Hugging Face and an access token (`HF_TOKEN`).
 
 ## Analyses
-(a) paired embedding consistency; (b) phone-to-scanner retrieval; (c) tissue-type probes trained on scanner tiles and tested on phone tiles (5-fold location-grouped CV, 1,000 location-level bootstrap CIs); (d) adaptations: per-device centring, CORAL, few-shot calibration; (e) per-phone degradation versus image sharpness and saturation.
+(a) paired embedding consistency; (b) phone-to-scanner retrieval; (c) tissue-type probes trained on scanner tiles and tested on phone tiles (5-fold location-grouped CV, 1,000 location-level bootstrap CIs); (d) adaptations: per-device centring, CORAL, few-shot adaptation with 1, 5 or 10 labelled phone tiles per class; (e) per-phone degradation versus image sharpness and saturation.
 
 ## Main result
 | Encoder | Scanner BA | Phone BA | Drop |
@@ -43,11 +43,30 @@ Linear probe, balanced accuracy (BA). Full results with confidence intervals are
 ## Reproduce
 ```bash
 pip install -r requirements.txt
-python extract.py --tar <PLISM-sm tar> --csv <PLISM-sm csv> --model uni --out emb --batch 64
-python analysis.py --emb emb --results results --boot 1000
+export HF_TOKEN=...   # after accepting the licences of the gated models on Hugging Face
+
+# 1. Extract embeddings for the nine encoders used in the paper (one .npy per encoder + a shared index.csv)
+python extract.py --tar <PLISM-sm tar> --csv <PLISM-sm csv> --out emb --batch 64 \
+    --model uni,uni2h,gigapath,hoptimus0,virchow2,phikon2,conch,dinov2_l,vitb16_in
+
+# 2. Main analyses (a)-(e): CSVs, LaTeX tables and figures in results/
+#    Use a fresh --results directory for each configuration; cached classification results are
+#    recomputed automatically if --seed, --boot, --folds, --max-train or --lr-iter change.
+python analysis.py --emb emb --results results --boot 1000 --seed 0
+
+# 3. Sensitivity analyses of the paper (within-stain ordinary vs spatially disjoint folds,
+#    paired adaptation comparison over three seeds) -> results/review/
+python review_analyses.py --emb emb --out results/review --seeds 3 --boot 1000
+#    outputs: within_stain.csv, paired_adaptation.csv, grouping_counts.csv, spatial_components.csv
+
+# 4. Figures as printed in the paper
+python make_figs.py results && python make_supp_figs.py   # -> results/figures/
+
+# tests (synthetic data, no GPU or model weights needed)
 pytest -q
 ```
-See `DEVELOPER_NOTES.md` for all options. The study was run on Kaggle (2× T4 GPU for extraction, CPU for analysis).
+Encoder keys and checkpoints: `python encoders.py`. See `DEVELOPER_NOTES.md` for all options.
+The study was run on Kaggle (2x T4 GPU for extraction, CPU for analysis); `kaggle_plism.ipynb` is the notebook used.
 
 ## Citation
 If you use this code, please cite the paper (arXiv link to be added) and the PLISM dataset (Ochi et al., 2024).

@@ -2,7 +2,9 @@
 
 Research code for probing patch encoders (nine were used in the paper) on PLISM-sm (Ochi et al., Sci Data 2024; CC BY 4.0): same tissue
 tile, same stain, imaged by 6 smartphones and 7 WSI scanners. Built for Kaggle (2x T4, 12 h, ~20 GB disk).
-Everything except the real-weight model loading was tested on synthetic data (see *Status*).
+These notes were written during development (November 2026), when everything except real-weight model loading had been
+tested on synthetic data only (see *Status*). The study itself was then run on Kaggle with the real weights of all nine
+encoders (2x T4); its outputs are in `results/` and `results/review/`.
 
 ## Files
 | file | purpose |
@@ -99,7 +101,7 @@ Set `HF_TOKEN`; request access on each gated model page beforehand.
 10. Throughput/ETA on T4 is unmeasured (PNG decode + gzip may dominate for small models; `--workers`).
 
 ## Status
-`pytest -q`: 22 tests pass (synthetic tar.gz streaming, index/alignment, crash-resume, limit guard, stain-norm flag, colmap override, no-CSV fallback,
+`pytest -q`: 23 tests pass (synthetic tar.gz streaming, index/alignment, crash-resume, limit guard, classification cache invalidated when settings change, stain-norm flag, colmap override, no-CSV fallback,
 leakage-free folds, memorisation test, sklearn-equivalence of the bootstrap metrics, retrieval/cosine sanity, CORAL, end-to-end outputs).
 
 ## Known risks

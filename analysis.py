@@ -620,15 +620,24 @@ def analyse_model(emb_dir, res_dir, model: str, index: pd.DataFrame, analyses="a
     if any(a in analyses for a in "cde"):
         vs = list(variants) if "d" in analyses else ["baseline"]
         cp = res_dir / "cache" / f"classification__{model}.csv"
-        if cp.exists() and not set(vs) <= set(pd.read_csv(cp, usecols=["variant"]).variant):
-            print(f"[{model}] cached classification lacks requested variants -> recomputing")
-            cp.unlink()
+        # the classification cache depends on the protocol settings: store them next to the CSV and recompute on mismatch
+        settings = {"seed": seed, "boot": boot, "folds": folds, "max_train": max_train, "lr_iter": lr_iter}
+        sp = cp.with_suffix(".settings.json")
+        if cp.exists():
+            old = json.loads(sp.read_text()) if sp.exists() else None
+            if old != settings:
+                print(f"[{model}] cached classification was made with different settings ({old}) -> recomputing")
+                cp.unlink()
+            elif not set(vs) <= set(pd.read_csv(cp, usecols=["variant"]).variant):
+                print(f"[{model}] cached classification lacks requested variants -> recomputing")
+                cp.unlink()
 
         def run():
             print(f"[{model}] probes ({', '.join(vs)}) ...", flush=True)
             r = run_probe_protocol(E, index, variants=vs, n_splits=folds, seed=seed, max_train=max_train, lr_iter=lr_iter)
             return summarise_probe(model, r, boot, seed)
         _cached(res_dir, "classification", model, run)
+        sp.write_text(json.dumps(settings))
 
 
 def main(argv=None):

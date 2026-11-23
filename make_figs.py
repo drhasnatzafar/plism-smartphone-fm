@@ -24,4 +24,4 @@ for i in range(pp.shape[0]):
     for j in range(pp.shape[1]):
         v = pp.values[i, j]; ax[1].text(j, i, f'{v:.2f}', ha='center', va='center', fontsize=6.5, color='w' if v < .2 else 'k')
 fig.colorbar(im, ax=ax[1], label='BA drop (linear probe)'); ax[1].set_title('(b) drop per phone', fontsize=10)
-fig.tight_layout(); fig.savefig('figures/fig_main.pdf'); fig.savefig('figures/fig_main.png', dpi=150)
+fig.tight_layout(); fig.savefig(f'{R}/figures/fig_main.pdf'); fig.savefig(f'{R}/figures/fig_main.png', dpi=150)
